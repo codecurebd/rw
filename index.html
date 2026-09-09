@@ -363,15 +363,12 @@
                 const sizeStr = data.size ? (data.size/1024).toFixed(1)+' KB' : '';
                 const icon = data.type === 'image' ? '🖼️' : '📄';
 
-                // Check if it's a chunked file (has totalChunks)
                 const isChunked = data.totalChunks && data.totalChunks > 0;
 
                 let downloadHtml = '';
                 if (isChunked) {
-                    // For chunked files, we need to trigger reassembly download
                     downloadHtml = `<button class="download-btn" data-fileid="${doc.id}" data-name="${escapeHtml(data.name)}" onclick="downloadChunkedFile('${doc.id}', '${escapeHtml(data.name)}')">Download</button>`;
                 } else {
-                    // Regular file (Cloudinary or Base64)
                     const url = data.url || '#';
                     downloadHtml = `<a href="${escapeHtml(url)}" download="${escapeHtml(data.name)}" target="_blank">Download</a>`;
                 }
@@ -398,9 +395,7 @@
                     const fileId = e.currentTarget.getAttribute('data-id');
                     if (confirm('Delete this file? This will also delete all its chunks.')) {
                         try {
-                            // Delete metadata
                             await db.collection('files').doc(fileId).delete();
-                            // Delete all chunks associated with this file
                             const chunksSnap = await db.collection('fileChunks').where('fileId', '==', fileId).get();
                             const batch = db.batch();
                             chunksSnap.forEach(doc => batch.delete(doc.ref));
@@ -454,7 +449,6 @@
                 });
                 await batch.commit();
 
-                // Delete associated chunks for each file
                 for (const fileId of fileIds) {
                     const chunksSnap = await db.collection('fileChunks').where('fileId', '==', fileId).get();
                     const chunkBatch = db.batch();
@@ -531,9 +525,9 @@
     });
 
     // ============================================================
-    // 9. DOCUMENT UPLOAD (CHUNKING SYSTEM)
+    // 9. DOCUMENT UPLOAD (CHUNKING SYSTEM – FIXED)
     // ============================================================
-    const CHUNK_SIZE = 600 * 1024; // 600 KB per chunk (safe under 1MiB Firestore limit)
+    const CHUNK_SIZE = 600 * 1024; // 600 KB
 
     function generateFileId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
@@ -565,7 +559,7 @@
         uploadDocumentBtn.disabled = true;
         uploadDocumentBtn.textContent = 'Uploading…';
 
-        // If file is small (<= 600KB), upload as Base64 normally (faster for small files)
+        // Small file: Base64 fast path
         if (file.size <= CHUNK_SIZE) {
             try {
                 const base64Data = await new Promise((resolve, reject) => {
@@ -578,7 +572,7 @@
                     name: file.name, size: file.size, url: base64Data,
                     type: 'document', uid: currentUser.uid, email: currentUser.email,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    totalChunks: 1 // Mark as single chunk (for compatibility)
+                    totalChunks: 1
                 });
                 documentInput.value = ''; docFileName.textContent = '';
                 alert('✅ Document uploaded successfully!');
@@ -593,13 +587,13 @@
             }
         }
 
-        // ---- LARGE FILE: CHUNKING ----
+        // ---- LARGE FILE: CHUNKING (FIXED) ----
         try {
             const fileId = generateFileId();
             const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
             const fileBuffer = await file.arrayBuffer();
 
-            // 1. Create Metadata document
+            // 1. Metadata
             await db.collection('files').doc(fileId).set({
                 id: fileId,
                 name: file.name,
@@ -618,20 +612,22 @@
                 const end = Math.min(start + CHUNK_SIZE, file.size);
                 const chunkData = new Uint8Array(fileBuffer.slice(start, end));
 
+                // ✅ Convert Uint8Array to Firestore Blob/Bytes
+                const firestoreBlob = firebase.firestore.Blob.fromUint8Array(chunkData);
+
                 await db.collection('fileChunks').add({
                     fileId: fileId,
                     chunkIndex: i,
                     totalChunks: totalChunks,
-                    data: chunkData, // Firestore bytes (Uint8Array)
+                    data: firestoreBlob,  // ✅ Now valid Firestore data
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Update progress
                 const percent = Math.round(((i + 1) / totalChunks) * 100);
                 updateProgress(percent);
             }
 
-            // 3. Mark as completed
+            // 3. Mark completed
             await db.collection('files').doc(fileId).update({
                 status: 'completed',
                 completedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -651,11 +647,10 @@
     });
 
     // ============================================================
-    // 10. DOWNLOAD CHUNKED FILE (Reassembly)
+    // 10. DOWNLOAD CHUNKED FILE (FIXED)
     // ============================================================
     window.downloadChunkedFile = async function(fileId, fileName) {
         try {
-            // 1. Get metadata
             const metaSnap = await db.collection('files').doc(fileId).get();
             if (!metaSnap.exists()) {
                 alert('File metadata not found.');
@@ -668,7 +663,6 @@
                 return;
             }
 
-            // 2. Fetch all chunks
             const chunksSnap = await db.collection('fileChunks')
                 .where('fileId', '==', fileId)
                 .orderBy('chunkIndex', 'asc')
@@ -679,16 +673,16 @@
                 return;
             }
 
-            // 3. Reassemble
             const chunks = [];
             let totalSize = 0;
             chunksSnap.forEach(doc => {
                 const data = doc.data();
-                // Firestore returns Uint8Array for bytes field
-                const chunk = data.data;
-                if (chunk) {
-                    chunks.push(chunk);
-                    totalSize += chunk.length;
+                // ✅ Firestore Blob -> convert back to Uint8Array
+                const chunkBlob = data.data;
+                if (chunkBlob) {
+                    const chunkArray = chunkBlob.toUint8Array();
+                    chunks.push(chunkArray);
+                    totalSize += chunkArray.length;
                 }
             });
 
@@ -696,7 +690,6 @@
                 alert(`Warning: Expected ${totalChunks} chunks, found ${chunks.length}. File may be corrupted.`);
             }
 
-            // 4. Concatenate all chunks
             const fullArray = new Uint8Array(totalSize);
             let offset = 0;
             for (const chunk of chunks) {
@@ -704,7 +697,6 @@
                 offset += chunk.length;
             }
 
-            // 5. Create blob and download
             const blob = new Blob([fullArray], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -733,7 +725,7 @@
         return div.innerHTML;
     }
 
-    console.log('🚀 Rokon Workspace – Document chunking system enabled (600KB per chunk).');
+    console.log('🚀 Rokon Workspace – Chunk upload fixed with Firestore Blob.');
 </script>
 </body>
 </html>
