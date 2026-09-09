@@ -1025,7 +1025,7 @@
             background: var(--bg-surface);
             border-radius: var(--radius-lg);
             padding: 28px 32px;
-            max-width: 560px;
+            max-width: 580px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
@@ -1215,7 +1215,7 @@
 
         /* --- Custom user-list inside modal --- */
         .user-list-container {
-            max-height: 280px;
+            max-height: 300px;
             overflow-y: auto;
             margin: 10px 0 6px 0;
             border-radius: var(--radius-sm);
@@ -1273,6 +1273,14 @@
             padding: 2px 10px;
             border-radius: 20px;
             white-space: nowrap;
+        }
+        .modal-box .info-note {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            padding: 6px 12px;
+            background: rgba(26, 92, 219, 0.05);
+            border-radius: var(--radius-sm);
         }
 
         /* ============================================================
@@ -1908,7 +1916,7 @@
                     danger = false,
                     success = false,
                     warning = false,
-                    customConfirm = null, // function that returns a value or false
+                    customConfirm = null,
                 } = options;
 
                 modalResolve = resolve;
@@ -1954,7 +1962,6 @@
                     modalConfirmBtn.className = 'btn-modal-primary';
                 }
 
-                // Custom confirm handler
                 const handleConfirm = () => {
                     if (modalCustomConfirm) {
                         const result = modalCustomConfirm();
@@ -2101,7 +2108,6 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             } else {
-                // Update email if missing or changed
                 const data = snap.data();
                 if (!data.email || data.email !== email) {
                     await docRef.update({ email: email || '' });
@@ -2126,7 +2132,7 @@
         }
 
         // ============================================================
-        // 8. SETTINGS — Show all users with percentage inputs
+        // 8. SETTINGS — Show all users with email & percentage
         // ============================================================
         settingsBtn.addEventListener('click', async () => {
             if (!currentUser) return;
@@ -2148,7 +2154,6 @@
                     });
                 });
 
-                // Build user list HTML
                 let userListHtml = `
                     <div class="user-list-container">
                 `;
@@ -2164,7 +2169,11 @@
                 });
                 userListHtml += `
                     </div>
-                    <p class="text-sm text-muted mt-1">Adjust each user's percentage. Changes apply to all future work entries.</p>
+                    <div class="info-note">
+                        <i class="fas fa-info-circle"></i> 
+                        Each user's percentage determines their share of every new work entry. 
+                        Changes take effect for future work entries only.
+                    </div>
                 `;
 
                 const result = await openModal({
@@ -2176,14 +2185,13 @@
                     danger: false,
                     showCancel: true,
                     customConfirm: () => {
-                        // Collect all percentages
                         const inputs = document.querySelectorAll('.user-percent-input');
                         const updates = {};
                         let hasError = false;
                         inputs.forEach(input => {
                             const val = parseFloat(input.value);
                             if (isNaN(val) || val < 0 || val > 100) {
-                                showToast(`Invalid percentage for a user (must be 0-100)`, 'error');
+                                showToast(`Invalid percentage (must be 0-100)`, 'error');
                                 hasError = true;
                                 return;
                             }
@@ -2204,7 +2212,6 @@
                         await batch.commit();
                         showToast('All user percentages updated successfully!', 'success');
                         await loadUserData(currentUser.uid);
-                        // Also refresh the work list to show updated earnings
                     } catch (err) {
                         showToast('Failed to update percentages: ' + err.message, 'error');
                     }
@@ -2271,7 +2278,6 @@
         let userUnsubscribe = null;
 
         function startRealtimeListeners() {
-            // Chat
             if (chatUnsubscribe) chatUnsubscribe();
             chatUnsubscribe = db.collection('messages')
                 .orderBy('timestamp', 'asc')
@@ -2300,7 +2306,6 @@
                     container.scrollTop = container.scrollHeight;
                 }, console.error);
 
-            // Files
             if (fileUnsubscribe) fileUnsubscribe();
             fileUnsubscribe = db.collection('files')
                 .orderBy('timestamp', 'desc')
@@ -2388,7 +2393,6 @@
                     });
                 }, console.error);
 
-            // Works (global)
             if (workUnsubscribe) workUnsubscribe();
             workUnsubscribe = db.collection('works')
                 .orderBy('timestamp', 'desc')
@@ -2455,7 +2459,6 @@
                     });
                 }, console.error);
 
-            // User balance listener
             if (userUnsubscribe) userUnsubscribe();
             userUnsubscribe = db.collection('users').doc(currentUser.uid)
                 .onSnapshot(doc => {
@@ -2937,7 +2940,7 @@
             }
         });
 
-        console.log('🚀 Rokon Workspace v6 — Settings shows all users with percentage controls');
+        console.log('🚀 Rokon Workspace v7 — Fixed percentage calculation & email display in settings');
     </script>
 </body>
 </html>
