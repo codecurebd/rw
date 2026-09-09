@@ -305,6 +305,15 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+        .user-info .balance-badge {
+            background: rgba(26, 92, 219, 0.08);
+            padding: 5px 16px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 600;
+            white-space: nowrap;
+        }
         .btn-logout {
             background: none;
             border: 1.5px solid rgba(0, 0, 0, 0.06);
@@ -320,10 +329,25 @@
             background: rgba(0, 0, 0, 0.04);
             border-color: rgba(0, 0, 0, 0.12);
         }
+        .btn-settings {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 40px;
+            transition: var(--transition);
+        }
+        .btn-settings:hover {
+            background: rgba(0, 0, 0, 0.04);
+            color: var(--text-primary);
+        }
 
         /* ---- BODY ---- */
         .dashboard-body {
             display: flex;
+            flex-direction: column;
             flex: 1;
             overflow: hidden;
             padding: 16px;
@@ -331,8 +355,13 @@
             background: var(--bg-primary);
             contain: layout style;
         }
-
-        .col {
+        .dashboard-body .row {
+            display: flex;
+            gap: 16px;
+            flex: 1;
+            min-height: 0;
+        }
+        .dashboard-body .row .col {
             flex: 1;
             background: var(--bg-surface);
             border-radius: var(--radius-md);
@@ -800,6 +829,167 @@
         }
 
         /* ============================================================
+               📋 WORK SECTION (Kajer Talika)
+               ============================================================ */
+        .work-section {
+            background: var(--bg-surface);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            max-height: 320px;
+            min-height: 200px;
+            contain: layout style;
+        }
+        .work-section .work-header {
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border-light);
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            background: rgba(248, 250, 252, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .work-section .work-header .badge {
+            background: rgba(0, 0, 0, 0.04);
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 0.6rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .work-form {
+            padding: 10px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            background: rgba(248, 250, 252, 0.3);
+            border-bottom: 1px solid var(--border-light);
+            flex-shrink: 0;
+        }
+        .work-form input,
+        .work-form .date-input {
+            padding: 6px 12px;
+            border: 1.5px solid rgba(0, 0, 0, 0.06);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.6);
+            outline: none;
+            transition: var(--transition);
+            flex: 1 1 120px;
+            min-width: 80px;
+        }
+        .work-form input:focus {
+            border-color: var(--accent);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(26, 92, 219, 0.06);
+        }
+        .work-form button {
+            padding: 6px 18px;
+            border: none;
+            border-radius: 40px;
+            background: var(--accent-gradient);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 12px rgba(26, 92, 219, 0.15);
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .work-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26, 92, 219, 0.25);
+        }
+        .work-form button:disabled {
+            opacity: 0.5;
+            transform: none !important;
+        }
+        .work-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(248, 250, 252, 0.2);
+        }
+        .work-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .work-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .work-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+        }
+        .work-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 12px;
+            background: var(--bg-surface);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-light);
+            font-size: 0.85rem;
+            animation: fadeIn 0.2s ease;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+        }
+        .work-item .work-details {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        .work-item .work-details .date {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 500;
+            min-width: 70px;
+        }
+        .work-item .work-details .name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .work-item .work-details .amount {
+            color: var(--text-secondary);
+        }
+        .work-item .work-details .earnings {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .work-item .work-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .work-item .work-actions .btn-work-delete {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+        .work-item .work-actions .btn-work-delete:hover {
+            color: var(--danger);
+            background: rgba(220, 53, 69, 0.06);
+        }
+
+        /* ============================================================
                🎯 CUSTOM MODAL SYSTEM
                ============================================================ */
         .modal-overlay {
@@ -1117,13 +1307,17 @@
                 border-radius: var(--radius-md);
                 max-height: none;
             }
-            .dashboard-body {
+            .dashboard-body .row {
                 flex-direction: column;
-                padding: 10px;
-                gap: 10px;
+                min-height: 200px;
             }
-            .col {
-                min-height: 35vh;
+            .dashboard-body .row .col {
+                min-height: 30vh;
+                flex: 1 1 auto;
+            }
+            .work-section {
+                max-height: 400px;
+                min-height: 200px;
             }
             .dashboard-header {
                 padding: 10px 16px;
@@ -1137,6 +1331,10 @@
             }
             .user-info .email-badge {
                 max-width: 100px;
+                font-size: 0.7rem;
+                padding: 4px 12px;
+            }
+            .user-info .balance-badge {
                 font-size: 0.7rem;
                 padding: 4px 12px;
             }
@@ -1168,6 +1366,18 @@
                 padding: 12px 16px;
                 font-size: 0.82rem;
             }
+            .work-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .work-form input,
+            .work-form .date-input {
+                flex: 1 1 100%;
+            }
+            .work-item .work-details {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1182,9 +1392,12 @@
                 padding: 6px;
                 gap: 6px;
             }
+            .dashboard-body .row {
+                gap: 6px;
+            }
             .col {
                 border-radius: var(--radius-sm);
-                min-height: 30vh;
+                min-height: 25vh;
             }
             .col-header {
                 padding: 10px 12px;
@@ -1255,6 +1468,29 @@
             .dashboard-header .brand .live-badge {
                 display: none;
             }
+            .work-section {
+                max-height: 350px;
+                min-height: 150px;
+            }
+            .work-form {
+                padding: 6px 10px;
+            }
+            .work-form input,
+            .work-form .date-input {
+                font-size: 0.8rem;
+                padding: 4px 10px;
+            }
+            .work-item {
+                font-size: 0.8rem;
+                padding: 4px 10px;
+            }
+            .work-item .work-details .date {
+                font-size: 0.65rem;
+                min-width: 60px;
+            }
+            .btn-settings {
+                font-size: 1rem;
+            }
         }
 
         /* ============================================================
@@ -1278,7 +1514,9 @@
         .col,
         .chat-messages,
         .file-list,
-        .file-item {
+        .file-item,
+        .work-list,
+        .work-item {
             contain: layout style paint;
         }
         .app-container {
@@ -1286,7 +1524,8 @@
         }
         .message,
         .file-item,
-        .toast {
+        .toast,
+        .work-item {
             will-change: transform, opacity;
         }
 
@@ -1357,68 +1596,90 @@
                 </div>
                 <div class="user-info">
                     <span class="email-badge" id="userEmailDisplay">user@example.com</span>
+                    <span class="balance-badge" id="balanceDisplay">Balance: $0.00</span>
+                    <button class="btn-settings" id="settingsBtn" title="Settings"><i class="fas fa-cog"></i></button>
                     <button class="btn-logout" id="logoutBtn">Logout</button>
                 </div>
             </div>
 
             <!-- BODY -->
             <div class="dashboard-body">
-                <!-- LEFT: Chat -->
-                <div class="col">
-                    <div class="col-header">
-                        <span>💬 Live Chat</span>
-                        <span class="badge">real‑time</span>
+                <!-- Row: Chat + Files -->
+                <div class="row">
+                    <!-- LEFT: Chat -->
+                    <div class="col">
+                        <div class="col-header">
+                            <span>💬 Live Chat</span>
+                            <span class="badge">real‑time</span>
+                        </div>
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="empty-state"><i class="fas fa-comment-dots"></i>No messages yet.</div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" id="chatInput" placeholder="Type a message…" />
+                            <button id="sendChatBtn">Send</button>
+                        </div>
                     </div>
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="empty-state"><i class="fas fa-comment-dots"></i>No messages yet.</div>
-                    </div>
-                    <div class="chat-input-area">
-                        <input type="text" id="chatInput" placeholder="Type a message…" />
-                        <button id="sendChatBtn">Send</button>
+
+                    <!-- RIGHT: Files -->
+                    <div class="col">
+                        <div class="col-header">
+                            <span>📎 Shared Files</span>
+                            <span class="badge" id="fileCount">0</span>
+                        </div>
+                        <div class="file-toolbar">
+                            <label>
+                                <input type="checkbox" id="selectAllCheckbox" />
+                                Select All
+                            </label>
+                            <button id="deleteSelectedBtn" class="btn-delete-selected">Delete Selected</button>
+                        </div>
+                        <div class="file-list" id="fileList">
+                            <div class="empty-state"><i class="fas fa-folder-open"></i>No files shared yet.</div>
+                        </div>
+
+                        <!-- Upload -->
+                        <div class="file-upload-container">
+                            <div class="upload-progress-wrap" id="docProgressWrap">
+                                <progress id="docProgressBar" value="0" max="100"></progress>
+                                <span class="progress-text" id="docProgressText">0%</span>
+                            </div>
+                            <div class="upload-row">
+                                <label class="file-label" id="imageLabel">
+                                    <i class="fas fa-image"></i>
+                                    <span>Choose image…</span>
+                                    <span class="file-name" id="imageFileName"></span>
+                                    <input type="file" id="imageInput" accept="image/*" />
+                                </label>
+                                <button id="uploadImageBtn" class="btn-img-upload">Upload</button>
+                            </div>
+                            <div class="upload-row">
+                                <label class="file-label" id="docLabel">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>Choose document…</span>
+                                    <span class="file-name" id="docFileName"></span>
+                                    <input type="file" id="documentInput" accept=".pdf,.doc,.docx,.txt,.zip" />
+                                </label>
+                                <button id="uploadDocumentBtn" class="btn-doc-upload">Upload</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- RIGHT: Files -->
-                <div class="col">
-                    <div class="col-header">
-                        <span>📎 Shared Files</span>
-                        <span class="badge" id="fileCount">0</span>
+                <!-- ===== WORK SECTION (Kajer Talika) ===== -->
+                <div class="work-section" id="workSection">
+                    <div class="work-header">
+                        <span>📋 Work History</span>
+                        <span class="badge" id="workCount">0</span>
                     </div>
-                    <div class="file-toolbar">
-                        <label>
-                            <input type="checkbox" id="selectAllCheckbox" />
-                            Select All
-                        </label>
-                        <button id="deleteSelectedBtn" class="btn-delete-selected">Delete Selected</button>
+                    <div class="work-form" id="workForm">
+                        <input type="date" id="workDate" class="date-input" />
+                        <input type="text" id="workName" placeholder="Work name" />
+                        <input type="number" id="workAmount" placeholder="Amount (৳)" step="0.01" min="0" />
+                        <button id="addWorkBtn">Add Work</button>
                     </div>
-                    <div class="file-list" id="fileList">
-                        <div class="empty-state"><i class="fas fa-folder-open"></i>No files shared yet.</div>
-                    </div>
-
-                    <!-- Upload -->
-                    <div class="file-upload-container">
-                        <div class="upload-progress-wrap" id="docProgressWrap">
-                            <progress id="docProgressBar" value="0" max="100"></progress>
-                            <span class="progress-text" id="docProgressText">0%</span>
-                        </div>
-                        <div class="upload-row">
-                            <label class="file-label" id="imageLabel">
-                                <i class="fas fa-image"></i>
-                                <span>Choose image…</span>
-                                <span class="file-name" id="imageFileName"></span>
-                                <input type="file" id="imageInput" accept="image/*" />
-                            </label>
-                            <button id="uploadImageBtn" class="btn-img-upload">Upload</button>
-                        </div>
-                        <div class="upload-row">
-                            <label class="file-label" id="docLabel">
-                                <i class="fas fa-file-alt"></i>
-                                <span>Choose document…</span>
-                                <span class="file-name" id="docFileName"></span>
-                                <input type="file" id="documentInput" accept=".pdf,.doc,.docx,.txt,.zip" />
-                            </label>
-                            <button id="uploadDocumentBtn" class="btn-doc-upload">Upload</button>
-                        </div>
+                    <div class="work-list" id="workList">
+                        <div class="empty-state"><i class="fas fa-clipboard-list"></i>No work entries yet.</div>
                     </div>
                 </div>
             </div>
@@ -1490,6 +1751,8 @@
         const loginError = document.getElementById('loginError');
         const logoutBtn = document.getElementById('logoutBtn');
         const userEmailDisplay = document.getElementById('userEmailDisplay');
+        const balanceDisplay = document.getElementById('balanceDisplay');
+        const settingsBtn = document.getElementById('settingsBtn');
 
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
@@ -1511,8 +1774,16 @@
         const docProgressBar = document.getElementById('docProgressBar');
         const docProgressText = document.getElementById('docProgressText');
 
+        // Work section
+        const workDate = document.getElementById('workDate');
+        const workName = document.getElementById('workName');
+        const workAmount = document.getElementById('workAmount');
+        const addWorkBtn = document.getElementById('addWorkBtn');
+        const workList = document.getElementById('workList');
+        const workCount = document.getElementById('workCount');
+
         // ============================================================
-        // 4. MODAL SYSTEM (Custom replacement for alert/confirm/prompt)
+        // 4. MODAL SYSTEM
         // ============================================================
         const modal = document.getElementById('customModal');
         const modalBox = document.getElementById('modalBox');
@@ -1552,7 +1823,6 @@
                 modalResolve = resolve;
                 modalReject = reject;
 
-                // Icon
                 let iconHtml = '';
                 if (icon) {
                     let colorClass = '';
@@ -1565,7 +1835,6 @@
                 modalTitle.innerHTML = `<i class="fas ${icon}" style="color:${iconColor};"></i> ${title}`;
                 modalBody.innerHTML = iconHtml + (message || '');
 
-                // Input
                 if (input) {
                     modalInputGroup.classList.remove('hidden');
                     modalInputLabel.textContent = inputLabel;
@@ -1583,7 +1852,6 @@
                     modalConfirmBtn.disabled = false;
                 }
 
-                // Buttons
                 modalConfirmBtn.textContent = confirmText;
                 modalCancelBtn.textContent = cancelText;
                 modalCancelBtn.style.display = showCancel ? '' : 'none';
@@ -1594,7 +1862,6 @@
                     modalConfirmBtn.className = 'btn-modal-primary';
                 }
 
-                // Store callbacks
                 modal._onConfirm = () => {
                     if (input) {
                         const val = modalInput.value.trim();
@@ -1620,7 +1887,6 @@
                     closeModal();
                 };
 
-                // Event listeners
                 modalConfirmBtn.onclick = modal._onConfirm;
                 modalCancelBtn.onclick = modal._onCancel;
                 modalCloseBtn.onclick = modal._onClose;
@@ -1698,25 +1964,101 @@
         function hideLoading() { loadingOverlay.classList.remove('active'); }
 
         // ============================================================
-        // 7. AUTH
+        // 7. AUTH & USER SETUP
         // ============================================================
         let currentUser = null;
+        let currentUserData = null; // { balance, percentage }
 
-        auth.onAuthStateChanged(user => {
+        auth.onAuthStateChanged(async user => {
             if (user) {
                 currentUser = user;
                 userEmailDisplay.textContent = user.email;
+                // Ensure user document exists
+                await ensureUserDocument(user.uid);
+                // Load user data
+                await loadUserData(user.uid);
                 showDashboard();
                 startRealtimeListeners();
                 hideLoading();
             } else {
                 currentUser = null;
+                currentUserData = null;
                 showLogin();
                 detachListeners();
                 hideLoading();
             }
         });
 
+        async function ensureUserDocument(uid) {
+            const docRef = db.collection('users').doc(uid);
+            const snap = await docRef.get();
+            if (!snap.exists) {
+                await docRef.set({
+                    balance: 0,
+                    percentage: 100,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        }
+
+        async function loadUserData(uid) {
+            const docRef = db.collection('users').doc(uid);
+            const snap = await docRef.get();
+            if (snap.exists) {
+                currentUserData = snap.data();
+                updateBalanceDisplay(currentUserData.balance || 0);
+            } else {
+                currentUserData = { balance: 0, percentage: 100 };
+                updateBalanceDisplay(0);
+            }
+        }
+
+        function updateBalanceDisplay(balance) {
+            balanceDisplay.textContent = `Balance: $${balance.toFixed(2)}`;
+        }
+
+        // ============================================================
+        // 8. SETTINGS MODAL (Earning Percentage)
+        // ============================================================
+        settingsBtn.addEventListener('click', async () => {
+            const currentPercentage = currentUserData?.percentage || 100;
+            const result = await openModal({
+                title: 'Earning Percentage',
+                icon: 'fa-percent',
+                iconColor: 'var(--accent)',
+                message: `
+                    <p>Set the percentage of the work amount that will be added to your balance.</p>
+                    <p>Current: <strong>${currentPercentage}%</strong></p>
+                    <p class="mt-1">Example: If you enter a work amount of 1000 and percentage is 80%, your balance increases by 800.</p>
+                `,
+                confirmText: 'Save',
+                input: true,
+                inputLabel: 'New percentage (1-100)',
+                inputPlaceholder: 'e.g. 80',
+                expectedValue: '', // no match required
+                showCancel: true
+            });
+            if (result !== false) {
+                const newPercent = parseFloat(result);
+                if (isNaN(newPercent) || newPercent < 0 || newPercent > 100) {
+                    showToast('Please enter a valid percentage between 0 and 100.', 'error');
+                    return;
+                }
+                try {
+                    await db.collection('users').doc(currentUser.uid).update({
+                        percentage: newPercent
+                    });
+                    currentUserData.percentage = newPercent;
+                    showToast(`Earning percentage updated to ${newPercent}%`, 'success');
+                } catch (err) {
+                    showToast('Failed to update percentage: ' + err.message, 'error');
+                }
+            }
+        });
+
+        // ============================================================
+        // 9. LOGIN / LOGOUT
+        // ============================================================
         function showLogin() {
             loginScreen.classList.add('active');
             dashboard.classList.remove('active');
@@ -1763,12 +2105,15 @@
         loginPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); });
 
         // ============================================================
-        // 8. CHAT
+        // 10. CHAT
         // ============================================================
         let chatUnsubscribe = null;
         let fileUnsubscribe = null;
+        let workUnsubscribe = null;
+        let userUnsubscribe = null;
 
         function startRealtimeListeners() {
+            // Chat
             if (chatUnsubscribe) chatUnsubscribe();
             chatUnsubscribe = db.collection('messages')
                 .orderBy('timestamp', 'asc')
@@ -1797,6 +2142,7 @@
                     container.scrollTop = container.scrollHeight;
                 }, console.error);
 
+            // Files
             if (fileUnsubscribe) fileUnsubscribe();
             fileUnsubscribe = db.collection('files')
                 .orderBy('timestamp', 'desc')
@@ -1883,6 +2229,82 @@
                         });
                     });
                 }, console.error);
+
+            // Works (only for current user)
+            if (workUnsubscribe) workUnsubscribe();
+            workUnsubscribe = db.collection('works')
+                .where('userId', '==', currentUser.uid)
+                .orderBy('timestamp', 'desc')
+                .onSnapshot(snapshot => {
+                    const container = workList;
+                    container.innerHTML = '';
+                    workCount.textContent = snapshot.size;
+
+                    if (snapshot.empty) {
+                        container.innerHTML =
+                            '<div class="empty-state"><i class="fas fa-clipboard-list"></i>No work entries yet.</div>';
+                        return;
+                    }
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const item = document.createElement('div');
+                        item.classList.add('work-item');
+                        const dateStr = data.date ? new Date(data.date.toMillis()).toLocaleDateString(
+                            'en-GB') : '';
+                        item.innerHTML = `
+                                <div class="work-details">
+                                    <span class="date">${dateStr}</span>
+                                    <span class="name">${escapeHtml(data.workName)}</span>
+                                    <span class="amount">Amount: $${data.amount.toFixed(2)}</span>
+                                    <span class="earnings">Earned: $${data.earnings.toFixed(2)}</span>
+                                </div>
+                                <div class="work-actions">
+                                    <button class="btn-work-delete" data-id="${doc.id}" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                                </div>
+                            `;
+                        container.appendChild(item);
+                    });
+
+                    // Delete single work
+                    container.querySelectorAll('.btn-work-delete').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            const workId = e.currentTarget.getAttribute('data-id');
+                            const confirmed = await openModal({
+                                title: 'Delete Work Entry',
+                                icon: 'fa-trash-alt',
+                                iconColor: 'var(--danger)',
+                                message: 'This will permanently delete this work entry and adjust your balance accordingly.',
+                                confirmText: 'Delete',
+                                danger: true,
+                                input: true,
+                                inputLabel: 'Type DELETE to confirm:',
+                                inputPlaceholder: 'Type DELETE…',
+                                expectedValue: 'DELETE',
+                                showCancel: true
+                            });
+                            if (confirmed) {
+                                try {
+                                    await deleteWorkAndAdjustBalance(workId);
+                                    showToast('Work entry deleted and balance adjusted.', 'success');
+                                } catch (err) {
+                                    showToast('Error: ' + err.message, 'error');
+                                }
+                            }
+                        });
+                    });
+                }, console.error);
+
+            // User document listener for balance updates
+            if (userUnsubscribe) userUnsubscribe();
+            userUnsubscribe = db.collection('users').doc(currentUser.uid)
+                .onSnapshot(doc => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        currentUserData = data;
+                        updateBalanceDisplay(data.balance || 0);
+                    }
+                }, console.error);
         }
 
         function detachListeners() {
@@ -1890,10 +2312,14 @@
                 chatUnsubscribe = null; }
             if (fileUnsubscribe) { fileUnsubscribe();
                 fileUnsubscribe = null; }
+            if (workUnsubscribe) { workUnsubscribe();
+                workUnsubscribe = null; }
+            if (userUnsubscribe) { userUnsubscribe();
+                userUnsubscribe = null; }
         }
 
         // ============================================================
-        // 9. SELECT ALL & DELETE
+        // 11. SELECT ALL & DELETE (Files)
         // ============================================================
         selectAllCheckbox.addEventListener('change', (e) => {
             document.querySelectorAll('.file-checkbox').forEach(chk => chk.checked = e.target.checked);
@@ -1957,11 +2383,9 @@
         });
 
         // ============================================================
-        // 10. CHAT SEND
+        // 12. CHAT SEND
         // ============================================================
         sendChatBtn.addEventListener('click', sendMessage);
-        // Only one Enter listener — on the input itself. The document-level
-        // handler below no longer duplicates this.
         chatInput.addEventListener('keydown', e => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -1972,7 +2396,6 @@
         function sendMessage() {
             const text = chatInput.value.trim();
             if (!text || !currentUser) return;
-            // Disable the button briefly to prevent double-clicks
             sendChatBtn.disabled = true;
             db.collection('messages').add({
                 text,
@@ -1990,7 +2413,7 @@
         }
 
         // ============================================================
-        // 11. IMAGE UPLOAD (Cloudinary)
+        // 13. IMAGE UPLOAD (Cloudinary)
         // ============================================================
         async function uploadImageToCloudinary(file) {
             const formData = new FormData();
@@ -2044,7 +2467,7 @@
         });
 
         // ============================================================
-        // 12. DOCUMENT UPLOAD (Chunking)
+        // 14. DOCUMENT UPLOAD (Chunking)
         // ============================================================
         const CHUNK_SIZE = 600 * 1024;
 
@@ -2078,7 +2501,6 @@
             uploadDocumentBtn.disabled = true;
             uploadDocumentBtn.textContent = 'Uploading…';
 
-            // Small file: Base64
             if (file.size <= CHUNK_SIZE) {
                 try {
                     const base64Data = await new Promise((resolve, reject) => {
@@ -2111,7 +2533,6 @@
                 }
             }
 
-            // Large file: Chunking
             try {
                 const fileId = generateFileId();
                 const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
@@ -2167,7 +2588,7 @@
         });
 
         // ============================================================
-        // 13. DOWNLOAD CHUNKED FILE
+        // 15. DOWNLOAD CHUNKED FILE
         // ============================================================
         window.downloadChunkedFile = async function(fileId) {
             try {
@@ -2241,7 +2662,98 @@
         };
 
         // ============================================================
-        // 14. UTILITY
+        // 16. WORK MANAGEMENT
+        // ============================================================
+        // Set default date to today
+        (function setDefaultDate() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            workDate.value = `${yyyy}-${mm}-${dd}`;
+        })();
+
+        addWorkBtn.addEventListener('click', addWork);
+        workName.addEventListener('keydown', e => { if (e.key === 'Enter') addWork(); });
+        workAmount.addEventListener('keydown', e => { if (e.key === 'Enter') addWork(); });
+
+        async function addWork() {
+            if (!currentUser) return;
+            const dateVal = workDate.value;
+            const name = workName.value.trim();
+            const amount = parseFloat(workAmount.value);
+            if (!dateVal || !name || isNaN(amount) || amount <= 0) {
+                showToast('Please fill all fields with valid values.', 'warning');
+                return;
+            }
+
+            // Get current percentage
+            const percent = currentUserData?.percentage ?? 100;
+            const earnings = amount * (percent / 100);
+
+            addWorkBtn.disabled = true;
+            addWorkBtn.textContent = 'Adding…';
+
+            try {
+                // Use transaction to update balance and add work
+                const userRef = db.collection('users').doc(currentUser.uid);
+                await db.runTransaction(async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists) {
+                        throw new Error('User document not found.');
+                    }
+                    const currentBalance = userDoc.data().balance || 0;
+                    const newBalance = currentBalance + earnings;
+                    transaction.update(userRef, { balance: newBalance });
+
+                    // Add work entry
+                    const workRef = db.collection('works').doc();
+                    transaction.set(workRef, {
+                        userId: currentUser.uid,
+                        date: new Date(dateVal),
+                        workName: name,
+                        amount: amount,
+                        earnings: earnings,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+
+                // Clear form
+                workName.value = '';
+                workAmount.value = '';
+                // Keep date as is
+                showToast(`Work added! Earned $${earnings.toFixed(2)}`, 'success');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to add work: ' + err.message, 'error');
+            } finally {
+                addWorkBtn.disabled = false;
+                addWorkBtn.textContent = 'Add Work';
+            }
+        }
+
+        async function deleteWorkAndAdjustBalance(workId) {
+            // Get the work doc
+            const workRef = db.collection('works').doc(workId);
+            const workSnap = await workRef.get();
+            if (!workSnap.exists) throw new Error('Work entry not found.');
+            const workData = workSnap.data();
+            const earnings = workData.earnings || 0;
+
+            // Use transaction to subtract earnings from balance and delete work
+            const userRef = db.collection('users').doc(currentUser.uid);
+            await db.runTransaction(async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists) throw new Error('User document not found.');
+                const currentBalance = userDoc.data().balance || 0;
+                const newBalance = Math.max(0, currentBalance - earnings);
+                transaction.update(userRef, { balance: newBalance });
+                transaction.delete(workRef);
+            });
+        }
+
+        // ============================================================
+        // 17. UTILITY
         // ============================================================
         function escapeHtml(text) {
             if (!text) return '';
@@ -2251,21 +2763,18 @@
         }
 
         // ============================================================
-        // 15. KEYBOARD SHORTCUTS
+        // 18. KEYBOARD SHORTCUTS
         // ============================================================
         document.addEventListener('keydown', (e) => {
-            // Escape closes the modal (if open)
             if (e.key === 'Escape') {
                 if (modal.classList.contains('open')) {
                     if (modalResolve) modalResolve(false);
                     closeModal();
                 }
             }
-            // NOTE: Enter on chatInput is handled directly on the input
-            // element itself (see above) to avoid double-firing.
         });
 
-        console.log('🚀 Rokon Workspace v2 — Custom UI with modals & chunk upload');
+        console.log('🚀 Rokon Workspace v3 — with Work History & Earning Percentage');
     </script>
 </body>
 </html>
