@@ -226,14 +226,13 @@
     const db = firebase.firestore();
 
     // ============================================================
-    // 2. CLOUDINARY – UPDATE WITH YOUR REAL PRESET
+    // 2. CLOUDINARY – FIXED PRESET (matches components.js)
     // ============================================================
     const CLOUDINARY_CLOUD_NAME = "zmoyykj7";
-    // 🔽 REPLACE with the preset name from your components.js (admin panel)
-    const CLOUDINARY_UPLOAD_PRESET = "YOUR_ACTUAL_PRESET_NAME_HERE";
+    const CLOUDINARY_UPLOAD_PRESET = "codecurebd";  // ✅ CORRECT preset
 
     // ============================================================
-    // 3. UPLOAD FUNCTION (copy from admin panel's components.js if possible)
+    // 3. UPLOAD FUNCTION (matches admin panel's uploadImage)
     // ============================================================
     async function uploadImageToCloudinary(file) {
         const formData = new FormData();
@@ -510,8 +509,8 @@
         return div.innerHTML;
     }
 
-    console.log('🚀 Rokon Workspace – Image upload uses Cloudinary with preset:', CLOUDINARY_UPLOAD_PRESET);
-    console.log('ℹ️  If you see "Upload preset not found", update the preset name in the script.');
+    console.log('🚀 Rokon Workspace – Image upload preset set to "codecurebd" (matches admin panel).');
+    console.log('📸 Cloudinary cloud:', CLOUDINARY_CLOUD_NAME);
 </script>
 </body>
 </html>
