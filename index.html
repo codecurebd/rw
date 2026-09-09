@@ -763,7 +763,7 @@
         }
 
         // ============================================================
-        //  6. FILE UPLOAD (EasySend API - 100% CORS Friendly)
+        //  6. FILE UPLOAD (EasySend - FIXED RESPONSE PARSING)
         // ============================================================
         uploadFileBtn.addEventListener('click', uploadFile);
 
@@ -780,10 +780,8 @@
 
             try {
                 const formData = new FormData();
-                // EasySend API তে "files[]" নামে ফাইল পাঠাতে হয়
                 formData.append('files[]', file);
 
-                // EasySend API - কোনো টোকেন/অথেন্টিকেশন লাগে না
                 const response = await fetch('https://easysend.co/api/v1/upload', {
                     method: 'POST',
                     body: formData
@@ -795,13 +793,41 @@
 
                 const result = await response.json();
 
-                // EasySend রেসপন্স চেক করা
-                if (!result.data || !result.data[0] || !result.data[0].url) {
-                    throw new Error('Invalid response from EasySend');
+                // ----- SMARTER RESPONSE PARSING STARTS -----
+                let fileUrl = null;
+                let fileName = file.name;
+
+                // Check if status is success/ok
+                if (result.status === 'success' || result.status === 'ok') {
+                    const data = result.data;
+                    
+                    // If data is an array (e.g., multiple files)
+                    if (Array.isArray(data) && data.length > 0) {
+                        fileUrl = data[0].url || data[0].downloadUrl || data[0].link;
+                        fileName = data[0].name || fileName;
+                    } 
+                    // If data is a single object
+                    else if (data && typeof data === 'object') {
+                        fileUrl = data.url || data.downloadUrl || data.link || data.downloadPage;
+                        fileName = data.name || fileName;
+                    }
                 }
 
-                const fileUrl = result.data[0].url; // ডাউনলোড লিংক
-                const fileName = result.data[0].name || file.name;
+                // If still not found, check root level for url (some APIs put it there)
+                if (!fileUrl) {
+                    fileUrl = result.url || result.downloadUrl || result.link || result.downloadPage;
+                }
+
+                // Final fallback: check if result itself has a files array (very generic)
+                if (!fileUrl && result.files && Array.isArray(result.files) && result.files.length > 0) {
+                    fileUrl = result.files[0].url || result.files[0].downloadUrl;
+                }
+
+                if (!fileUrl) {
+                    console.error('Full response from EasySend:', result); // লগে দেখুন ঠিক কী আসছে
+                    throw new Error('Could not find download URL in EasySend response.');
+                }
+                // ----- SMARTER RESPONSE PARSING ENDS -----
 
                 // Firestore-এ ফাইলের তথ্য সেভ করা
                 await db.collection('files').add({
@@ -814,7 +840,7 @@
                 });
 
                 fileInput.value = '';
-                alert('✅ File uploaded successfully via EasySend!');
+                alert('✅ File uploaded successfully!');
 
             } catch (error) {
                 console.error('Upload error:', error);
@@ -835,7 +861,7 @@
             return div.innerHTML;
         }
 
-        console.log('🚀 Rokon Workspace (EasySend API Integrated) loaded.');
+        console.log('🚀 Rokon Workspace (Fixed EasySend Parser) loaded.');
     </script>
 </body>
 </html>
