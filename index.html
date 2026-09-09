@@ -589,11 +589,9 @@
         const db = firebase.firestore();
 
         // ============================================================
-        //  2. GOFILE API DETAILS (Using your provided token)
+        //  2. FILE.IO API (No token needed)
         // ============================================================
-        const GOFILE_TOKEN = 'yZMgdyCwzfJCwLo33v74P01iljXO1PcJ';
-        // ✅ সঠিক অফিশিয়াল এন্ডপয়েন্ট (CORS-সাপোর্টেড)
-        const GOFILE_UPLOAD_URL = 'https://api.gofile.io/uploadFile';
+        const FILEIO_UPLOAD_URL = 'https://file.io/';
 
         // ============================================================
         //  3. DOM REFS
@@ -770,7 +768,7 @@
         }
 
         // ============================================================
-        //  7. FILE UPLOAD (GoFile - Official API Endpoint)
+        //  7. FILE UPLOAD (File.io - Simple & Reliable)
         // ============================================================
         uploadFileBtn.addEventListener('click', uploadFile);
 
@@ -789,41 +787,26 @@
                 const formData = new FormData();
                 formData.append('file', file);
 
-                // ✅ সঠিক GoFile API-তে রিকোয়েস্ট পাঠানো হচ্ছে
-                const response = await fetch(GOFILE_UPLOAD_URL, {
+                // File.io-তে কোনো API টোকেন লাগে না
+                const response = await fetch(FILEIO_UPLOAD_URL, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${GOFILE_TOKEN}`
-                    },
                     body: formData
                 });
 
-                // রেসপন্স JSON নাও হতে পারে, তাই টেক্সট আকারে পড়ে JSON পার্স করার চেষ্টা
-                const responseText = await response.text();
-                let result;
-                try {
-                    result = JSON.parse(responseText);
-                } catch (e) {
-                    console.error('Raw response (not JSON):', responseText);
-                    throw new Error('Server returned non-JSON response. Maybe the token is invalid or server is down.');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
-                if (result.status !== 'ok') {
-                    throw new Error(result.status || 'Unknown GoFile error');
+                const result = await response.json();
+
+                // File.io রেসপন্স চেক করা
+                if (!result.success) {
+                    throw new Error(result.message || 'File.io upload failed');
                 }
 
-                // ডাউনলোড লিংক বের করা
-                let fileUrl = result.data?.downloadPage || result.data?.url;
-                if (!fileUrl && result.data?.fileId) {
-                    fileUrl = `https://gofile.io/d/${result.data.fileId}`;
-                }
+                const fileUrl = result.link; // ডাউনলোড লিংক
 
-                if (!fileUrl) {
-                    console.error('GoFile response data:', result.data);
-                    throw new Error('Could not find download URL in GoFile response.');
-                }
-
-                // Firestore-এ ফাইল সেভ করা
+                // Firestore-এ ফাইলের তথ্য সেভ করা
                 await db.collection('files').add({
                     name: file.name,
                     size: file.size,
@@ -834,7 +817,7 @@
                 });
 
                 fileInput.value = '';
-                alert('✅ File uploaded successfully via GoFile!');
+                alert('✅ File uploaded successfully via File.io!');
 
             } catch (error) {
                 console.error('Upload error:', error);
@@ -855,7 +838,7 @@
             return div.innerHTML;
         }
 
-        console.log('🚀 Rokon Workspace (GoFile Official API) loaded.');
+        console.log('🚀 Rokon Workspace (File.io API integrated) loaded.');
     </script>
 </body>
 </html>
