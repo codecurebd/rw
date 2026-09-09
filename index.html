@@ -75,7 +75,7 @@
         }
 
         /* ============================================================
-           🏗️ APP CONTAINER — now scrolls naturally
+           🏗️ APP CONTAINER — scrolls naturally
            ============================================================ */
         .app-container {
             width: 100%;
@@ -89,7 +89,6 @@
             position: relative;
             contain: layout style paint;
             min-height: 90vh;
-            /* grows with content */;
         }
 
         /* ============================================================
@@ -241,7 +240,7 @@
             display: flex;
         }
 
-        /* ---- HEADER ---- */
+        /* ---- HEADER (sticky) ---- */
         .dashboard-header {
             padding: 14px 24px;
             background: var(--bg-glass);
@@ -361,7 +360,6 @@
             gap: 16px;
             flex: 1 1 auto;
             min-height: 55vh;
-            /* tall by default */
             max-height: 72vh;
         }
         .dashboard-body .main-row .col {
@@ -832,7 +830,7 @@
         }
 
         /* ============================================================
-           📋 WORK SECTION (Kajer Talika) — now below main row
+           📋 WORK SECTION (Kajer Talika) — below main row
            ============================================================ */
         .work-section {
             background: var(--bg-surface);
@@ -1027,7 +1025,7 @@
             background: var(--bg-surface);
             border-radius: var(--radius-lg);
             padding: 28px 32px;
-            max-width: 520px;
+            max-width: 560px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
@@ -1215,6 +1213,68 @@
             color: var(--warning);
         }
 
+        /* --- Custom user-list inside modal --- */
+        .user-list-container {
+            max-height: 280px;
+            overflow-y: auto;
+            margin: 10px 0 6px 0;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-light);
+            background: rgba(248, 250, 252, 0.3);
+        }
+        .user-list-container .user-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border-light);
+            transition: var(--transition);
+        }
+        .user-list-container .user-row:last-child {
+            border-bottom: none;
+        }
+        .user-list-container .user-row:hover {
+            background: rgba(248, 250, 252, 0.5);
+        }
+        .user-list-container .user-row .user-email {
+            flex: 1;
+            font-size: 0.85rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-primary);
+        }
+        .user-list-container .user-row .user-percent-input {
+            width: 70px;
+            padding: 4px 8px;
+            border: 1.5px solid rgba(0, 0, 0, 0.06);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.6);
+            outline: none;
+            transition: var(--transition);
+            color: var(--text-primary);
+        }
+        .user-list-container .user-row .user-percent-input:focus {
+            border-color: var(--accent);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(26, 92, 219, 0.06);
+        }
+        .user-list-container .user-row .user-percent-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            min-width: 18px;
+        }
+        .user-list-container .user-row .user-current {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            background: rgba(0, 0, 0, 0.04);
+            padding: 2px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
         /* ============================================================
            🍞 TOAST SYSTEM
            ============================================================ */
@@ -1387,6 +1447,13 @@
                 flex-wrap: wrap;
                 gap: 4px;
             }
+            .user-list-container .user-row {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            .user-list-container .user-row .user-email {
+                flex: 1 1 100%;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1501,6 +1568,13 @@
             .btn-settings {
                 font-size: 1rem;
             }
+            .user-list-container .user-row {
+                padding: 6px 10px;
+            }
+            .user-list-container .user-row .user-percent-input {
+                width: 60px;
+                font-size: 0.8rem;
+            }
         }
 
         /* ============================================================
@@ -1566,6 +1640,12 @@
         }
         .w-full {
             width: 100%;
+        }
+        .text-muted {
+            color: var(--text-muted);
+        }
+        .text-sm {
+            font-size: 0.8rem;
         }
     </style>
 </head>
@@ -1784,7 +1864,6 @@
         const docProgressBar = document.getElementById('docProgressBar');
         const docProgressText = document.getElementById('docProgressText');
 
-        // Work section
         const workDate = document.getElementById('workDate');
         const workName = document.getElementById('workName');
         const workAmount = document.getElementById('workAmount');
@@ -1810,6 +1889,7 @@
         let modalResolve = null;
         let modalReject = null;
         let modalExpectedValue = '';
+        let modalCustomConfirm = null;
 
         function openModal(options) {
             return new Promise((resolve, reject) => {
@@ -1828,10 +1908,12 @@
                     danger = false,
                     success = false,
                     warning = false,
+                    customConfirm = null, // function that returns a value or false
                 } = options;
 
                 modalResolve = resolve;
                 modalReject = reject;
+                modalCustomConfirm = customConfirm;
 
                 let iconHtml = '';
                 if (icon) {
@@ -1872,7 +1954,16 @@
                     modalConfirmBtn.className = 'btn-modal-primary';
                 }
 
-                modal._onConfirm = () => {
+                // Custom confirm handler
+                const handleConfirm = () => {
+                    if (modalCustomConfirm) {
+                        const result = modalCustomConfirm();
+                        if (result !== false) {
+                            resolve(result);
+                            closeModal();
+                        }
+                        return;
+                    }
                     if (input) {
                         const val = modalInput.value.trim();
                         if (expectedValue && val.toLowerCase() !== expectedValue.toLowerCase()) {
@@ -1888,14 +1979,15 @@
                     }
                     closeModal();
                 };
-                modal._onCancel = () => {
+
+                const handleCancel = () => {
                     resolve(false);
                     closeModal();
                 };
-                modal._onClose = () => {
-                    resolve(false);
-                    closeModal();
-                };
+
+                modal._onConfirm = handleConfirm;
+                modal._onCancel = handleCancel;
+                modal._onClose = handleCancel;
 
                 modalConfirmBtn.onclick = modal._onConfirm;
                 modalCancelBtn.onclick = modal._onCancel;
@@ -1938,6 +2030,7 @@
             modalInput.removeEventListener('input', onModalInput);
             modalResolve = null;
             modalReject = null;
+            modalCustomConfirm = null;
         }
 
         // ============================================================
@@ -1983,7 +2076,7 @@
             if (user) {
                 currentUser = user;
                 userEmailDisplay.textContent = user.email;
-                await ensureUserDocument(user.uid);
+                await ensureUserDocument(user.uid, user.email);
                 await loadUserData(user.uid);
                 showDashboard();
                 startRealtimeListeners();
@@ -1997,15 +2090,22 @@
             }
         });
 
-        async function ensureUserDocument(uid) {
+        async function ensureUserDocument(uid, email) {
             const docRef = db.collection('users').doc(uid);
             const snap = await docRef.get();
             if (!snap.exists) {
                 await docRef.set({
                     balance: 0,
                     percentage: 100,
+                    email: email || '',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+            } else {
+                // Update email if missing or changed
+                const data = snap.data();
+                if (!data.email || data.email !== email) {
+                    await docRef.update({ email: email || '' });
+                }
             }
         }
 
@@ -2026,41 +2126,91 @@
         }
 
         // ============================================================
-        // 8. SETTINGS MODAL (Earning Percentage)
+        // 8. SETTINGS — Show all users with percentage inputs
         // ============================================================
         settingsBtn.addEventListener('click', async () => {
-            const currentPercentage = currentUserData?.percentage || 100;
-            const result = await openModal({
-                title: 'Earning Percentage',
-                icon: 'fa-percent',
-                iconColor: 'var(--accent)',
-                message: `
-                    <p>Set the percentage of the work amount that will be added to your balance.</p>
-                    <p>Current: <strong>${currentPercentage}%</strong></p>
-                    <p class="mt-1">Example: If you enter a work amount of 1000 and percentage is 80%, your balance increases by 800.</p>
-                `,
-                confirmText: 'Save',
-                input: true,
-                inputLabel: 'New percentage (1-100)',
-                inputPlaceholder: 'e.g. 80',
-                expectedValue: '',
-                showCancel: true
-            });
-            if (result !== false) {
-                const newPercent = parseFloat(result);
-                if (isNaN(newPercent) || newPercent < 0 || newPercent > 100) {
-                    showToast('Please enter a valid percentage between 0 and 100.', 'error');
+            if (!currentUser) return;
+
+            try {
+                const usersSnapshot = await db.collection('users').get();
+                if (usersSnapshot.empty) {
+                    showToast('No users found.', 'warning');
                     return;
                 }
-                try {
-                    await db.collection('users').doc(currentUser.uid).update({
-                        percentage: newPercent
+
+                const users = [];
+                usersSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    users.push({
+                        id: doc.id,
+                        email: data.email || doc.id,
+                        percentage: data.percentage || 100
                     });
-                    currentUserData.percentage = newPercent;
-                    showToast(`Earning percentage updated to ${newPercent}%`, 'success');
-                } catch (err) {
-                    showToast('Failed to update percentage: ' + err.message, 'error');
+                });
+
+                // Build user list HTML
+                let userListHtml = `
+                    <div class="user-list-container">
+                `;
+                users.forEach(user => {
+                    userListHtml += `
+                        <div class="user-row">
+                            <span class="user-email" title="${escapeHtml(user.email)}">${escapeHtml(user.email)}</span>
+                            <input type="number" class="user-percent-input" data-id="${user.id}" value="${user.percentage}" min="0" max="100" step="1" />
+                            <span class="user-percent-label">%</span>
+                            <span class="user-current">${user.percentage}%</span>
+                        </div>
+                    `;
+                });
+                userListHtml += `
+                    </div>
+                    <p class="text-sm text-muted mt-1">Adjust each user's percentage. Changes apply to all future work entries.</p>
+                `;
+
+                const result = await openModal({
+                    title: 'User Earning Percentages',
+                    icon: 'fa-users-cog',
+                    iconColor: 'var(--accent)',
+                    message: userListHtml,
+                    confirmText: 'Save All',
+                    danger: false,
+                    showCancel: true,
+                    customConfirm: () => {
+                        // Collect all percentages
+                        const inputs = document.querySelectorAll('.user-percent-input');
+                        const updates = {};
+                        let hasError = false;
+                        inputs.forEach(input => {
+                            const val = parseFloat(input.value);
+                            if (isNaN(val) || val < 0 || val > 100) {
+                                showToast(`Invalid percentage for a user (must be 0-100)`, 'error');
+                                hasError = true;
+                                return;
+                            }
+                            updates[input.dataset.id] = val;
+                        });
+                        if (hasError) return false;
+                        return updates;
+                    }
+                });
+
+                if (result !== false && typeof result === 'object') {
+                    try {
+                        const batch = db.batch();
+                        for (const [userId, percent] of Object.entries(result)) {
+                            const userRef = db.collection('users').doc(userId);
+                            batch.update(userRef, { percentage: percent });
+                        }
+                        await batch.commit();
+                        showToast('All user percentages updated successfully!', 'success');
+                        await loadUserData(currentUser.uid);
+                        // Also refresh the work list to show updated earnings
+                    } catch (err) {
+                        showToast('Failed to update percentages: ' + err.message, 'error');
+                    }
                 }
+            } catch (err) {
+                showToast('Error loading users: ' + err.message, 'error');
             }
         });
 
@@ -2672,7 +2822,7 @@
         };
 
         // ============================================================
-        // 16. WORK MANAGEMENT (Global)
+        // 16. WORK MANAGEMENT (Global — distributes to all users)
         // ============================================================
         (function setDefaultDate() {
             const today = new Date();
@@ -2787,7 +2937,7 @@
             }
         });
 
-        console.log('🚀 Rokon Workspace v5 — Layout fixed: Chat+Files take most height, Work section below scrolls');
+        console.log('🚀 Rokon Workspace v6 — Settings shows all users with percentage controls');
     </script>
 </body>
 </html>
