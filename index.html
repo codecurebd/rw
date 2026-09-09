@@ -589,14 +589,7 @@
         const db = firebase.firestore();
 
         // ============================================================
-        //  2. GOFILE API TOKEN & CORRECT UPLOAD URL
-        // ============================================================
-        const GOFILE_TOKEN = 'yZMgdyCwzfJCwLo33v74P01iljXO1PcJ';
-        // ✅ সঠিক আপলোড URL (store.gofile.io)
-        const GOFILE_UPLOAD_URL = 'https://store.gofile.io/uploadFile';
-
-        // ============================================================
-        //  3. DOM REFS
+        //  2. DOM REFS
         // ============================================================
         const loginScreen = document.getElementById('loginScreen');
         const dashboard = document.getElementById('dashboard');
@@ -620,7 +613,7 @@
         let currentUser = null;
 
         // ============================================================
-        //  4. AUTH STATE
+        //  3. AUTH STATE
         // ============================================================
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -647,7 +640,7 @@
         }
 
         // ============================================================
-        //  5. LOGIN / REGISTER
+        //  4. LOGIN / REGISTER
         // ============================================================
         loginBtn.addEventListener('click', () => {
             const email = loginEmail.value.trim();
@@ -679,7 +672,7 @@
         loginPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); });
 
         // ============================================================
-        //  6. CHAT (Firestore)
+        //  5. CHAT (Firestore)
         // ============================================================
         let chatUnsubscribe = null;
         let fileUnsubscribe = null;
@@ -770,7 +763,7 @@
         }
 
         // ============================================================
-        //  7. FILE UPLOAD (GoFile - FIXED URL)
+        //  6. FILE UPLOAD (EasySend API - 100% CORS Friendly)
         // ============================================================
         uploadFileBtn.addEventListener('click', uploadFile);
 
@@ -787,33 +780,32 @@
 
             try {
                 const formData = new FormData();
-                formData.append('file', file);
+                // EasySend API তে "files[]" নামে ফাইল পাঠাতে হয়
+                formData.append('files[]', file);
 
-                // ✅ CORRECTED: store.gofile.io ব্যবহার করছি
-                const response = await fetch(GOFILE_UPLOAD_URL, {
+                // EasySend API - কোনো টোকেন/অথেন্টিকেশন লাগে না
+                const response = await fetch('https://easysend.co/api/v1/upload', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${GOFILE_TOKEN}`
-                    },
                     body: formData
                 });
 
-                // যদি রেসপন্স JSON না হয়, তাহলে এরর থ্রো করবে
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const result = await response.json();
 
-                if (result.status !== 'ok') {
-                    throw new Error(result.status || 'GoFile upload failed');
+                // EasySend রেসপন্স চেক করা
+                if (!result.data || !result.data[0] || !result.data[0].url) {
+                    throw new Error('Invalid response from EasySend');
                 }
 
-                let fileUrl = result.data?.downloadPage || result.data?.url;
-                if (!fileUrl && result.data?.fileId) {
-                    fileUrl = `https://gofile.io/d/${result.data.fileId}`;
-                }
-                if (!fileUrl) throw new Error('No download URL received from GoFile');
+                const fileUrl = result.data[0].url; // ডাউনলোড লিংক
+                const fileName = result.data[0].name || file.name;
 
                 // Firestore-এ ফাইলের তথ্য সেভ করা
                 await db.collection('files').add({
-                    name: file.name,
+                    name: fileName,
                     size: file.size,
                     url: fileUrl,
                     uid: currentUser.uid,
@@ -822,11 +814,10 @@
                 });
 
                 fileInput.value = '';
-                alert('✅ File uploaded successfully!');
+                alert('✅ File uploaded successfully via EasySend!');
 
             } catch (error) {
                 console.error('Upload error:', error);
-                // এরর মেসেজটা ইউজারকে দেখানো
                 alert('❌ Upload failed: ' + error.message);
             } finally {
                 uploadFileBtn.disabled = false;
@@ -835,7 +826,7 @@
         }
 
         // ============================================================
-        //  8. UTILITY
+        //  7. UTILITY
         // ============================================================
         function escapeHtml(text) {
             if (!text) return '';
@@ -844,7 +835,7 @@
             return div.innerHTML;
         }
 
-        console.log('🚀 Rokon Workspace (Fixed Upload URL) loaded.');
+        console.log('🚀 Rokon Workspace (EasySend API Integrated) loaded.');
     </script>
 </body>
 </html>
