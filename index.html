@@ -647,15 +647,19 @@
     });
 
     // ============================================================
-    // 10. DOWNLOAD CHUNKED FILE (FIXED)
+    // 10. DOWNLOAD CHUNKED FILE – FIXED (Safe existence check)
     // ============================================================
     window.downloadChunkedFile = async function(fileId, fileName) {
         try {
-            const metaSnap = await db.collection('files').doc(fileId).get();
-            if (!metaSnap.exists()) {
+            const docRef = db.collection('files').doc(fileId);
+            const metaSnap = await docRef.get();
+
+            // ✅ Safe check – works for both compat and modular
+            if (!metaSnap || (typeof metaSnap.exists === 'function' ? !metaSnap.exists() : !metaSnap.data)) {
                 alert('File metadata not found.');
                 return;
             }
+
             const meta = metaSnap.data();
             const totalChunks = meta.totalChunks || 0;
             if (totalChunks === 0) {
@@ -677,10 +681,10 @@
             let totalSize = 0;
             chunksSnap.forEach(doc => {
                 const data = doc.data();
-                // ✅ Firestore Blob -> convert back to Uint8Array
                 const chunkBlob = data.data;
                 if (chunkBlob) {
-                    const chunkArray = chunkBlob.toUint8Array();
+                    // ✅ Convert Firestore Blob to Uint8Array
+                    const chunkArray = chunkBlob.toUint8Array ? chunkBlob.toUint8Array() : new Uint8Array(chunkBlob);
                     chunks.push(chunkArray);
                     totalSize += chunkArray.length;
                 }
@@ -725,7 +729,7 @@
         return div.innerHTML;
     }
 
-    console.log('🚀 Rokon Workspace – Chunk upload fixed with Firestore Blob.');
+    console.log('🚀 Rokon Workspace – Chunk upload & download fixed.');
 </script>
 </body>
 </html>
