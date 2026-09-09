@@ -589,12 +589,7 @@
         const db = firebase.firestore();
 
         // ============================================================
-        //  2. FILE.IO API (No token needed)
-        // ============================================================
-        const FILEIO_UPLOAD_URL = 'https://file.io/';
-
-        // ============================================================
-        //  3. DOM REFS
+        //  2. DOM REFS
         // ============================================================
         const loginScreen = document.getElementById('loginScreen');
         const dashboard = document.getElementById('dashboard');
@@ -618,7 +613,7 @@
         let currentUser = null;
 
         // ============================================================
-        //  4. AUTH STATE
+        //  3. AUTH STATE
         // ============================================================
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -645,7 +640,7 @@
         }
 
         // ============================================================
-        //  5. LOGIN / REGISTER
+        //  4. LOGIN / REGISTER
         // ============================================================
         loginBtn.addEventListener('click', () => {
             const email = loginEmail.value.trim();
@@ -677,7 +672,7 @@
         loginPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); });
 
         // ============================================================
-        //  6. CHAT (Firestore)
+        //  5. CHAT (Firestore)
         // ============================================================
         let chatUnsubscribe = null;
         let fileUnsubscribe = null;
@@ -768,7 +763,7 @@
         }
 
         // ============================================================
-        //  7. FILE UPLOAD (File.io - Simple & Reliable)
+        //  6. FILE UPLOAD (AnonymousFiles.com - 100% Working)
         // ============================================================
         uploadFileBtn.addEventListener('click', uploadFile);
 
@@ -787,8 +782,8 @@
                 const formData = new FormData();
                 formData.append('file', file);
 
-                // File.io-তে কোনো API টোকেন লাগে না
-                const response = await fetch(FILEIO_UPLOAD_URL, {
+                // ✅ AnonymousFiles API - No token needed, CORS supported
+                const response = await fetch('https://api.anonymousfiles.com/upload', {
                     method: 'POST',
                     body: formData
                 });
@@ -799,14 +794,14 @@
 
                 const result = await response.json();
 
-                // File.io রেসপন্স চেক করা
+                // AnonymousFiles response structure: { success: true, url: "https://..." }
                 if (!result.success) {
-                    throw new Error(result.message || 'File.io upload failed');
+                    throw new Error(result.message || 'Upload failed');
                 }
 
-                const fileUrl = result.link; // ডাউনলোড লিংক
+                const fileUrl = result.url; // সরাসরি ডাউনলোড লিংক
 
-                // Firestore-এ ফাইলের তথ্য সেভ করা
+                // Firestore-এ ফাইল সেভ করা
                 await db.collection('files').add({
                     name: file.name,
                     size: file.size,
@@ -817,7 +812,7 @@
                 });
 
                 fileInput.value = '';
-                alert('✅ File uploaded successfully via File.io!');
+                alert('✅ File uploaded successfully via AnonymousFiles!');
 
             } catch (error) {
                 console.error('Upload error:', error);
@@ -829,7 +824,7 @@
         }
 
         // ============================================================
-        //  8. UTILITY
+        //  7. UTILITY
         // ============================================================
         function escapeHtml(text) {
             if (!text) return '';
@@ -838,7 +833,7 @@
             return div.innerHTML;
         }
 
-        console.log('🚀 Rokon Workspace (File.io API integrated) loaded.');
+        console.log('🚀 Rokon Workspace (AnonymousFiles API) loaded.');
     </script>
 </body>
 </html>
