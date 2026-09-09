@@ -841,6 +841,7 @@
             max-height: 320px;
             min-height: 200px;
             contain: layout style;
+            flex-shrink: 0;
         }
         .work-section .work-header {
             padding: 12px 18px;
@@ -968,6 +969,7 @@
         .work-item .work-details .earnings {
             color: var(--accent);
             font-weight: 600;
+            font-size: 0.8rem;
         }
         .work-item .work-actions {
             display: flex;
@@ -1317,7 +1319,7 @@
             }
             .work-section {
                 max-height: 400px;
-                min-height: 200px;
+                min-height: 180px;
             }
             .dashboard-header {
                 padding: 10px 16px;
@@ -1470,7 +1472,7 @@
             }
             .work-section {
                 max-height: 350px;
-                min-height: 150px;
+                min-height: 140px;
             }
             .work-form {
                 padding: 6px 10px;
@@ -1973,9 +1975,7 @@
             if (user) {
                 currentUser = user;
                 userEmailDisplay.textContent = user.email;
-                // Ensure user document exists
                 await ensureUserDocument(user.uid);
-                // Load user data
                 await loadUserData(user.uid);
                 showDashboard();
                 startRealtimeListeners();
@@ -2035,7 +2035,7 @@
                 input: true,
                 inputLabel: 'New percentage (1-100)',
                 inputPlaceholder: 'e.g. 80',
-                expectedValue: '', // no match required
+                expectedValue: '',
                 showCancel: true
             });
             if (result !== false) {
@@ -2230,10 +2230,9 @@
                     });
                 }, console.error);
 
-            // Works (only for current user)
+            // Works (global — all users)
             if (workUnsubscribe) workUnsubscribe();
             workUnsubscribe = db.collection('works')
-                .where('userId', '==', currentUser.uid)
                 .orderBy('timestamp', 'desc')
                 .onSnapshot(snapshot => {
                     const container = workList;
@@ -2252,12 +2251,18 @@
                         item.classList.add('work-item');
                         const dateStr = data.date ? new Date(data.date.toMillis()).toLocaleDateString(
                             'en-GB') : '';
+                        // Show total amount and maybe each user's earnings? For simplicity, show total amount.
+                        const totalAmount = data.amount || 0;
+                        // Check if current user has earnings in this work
+                        const earnings = data.earnings && data.earnings[currentUser.uid] ? data
+                            .earnings[currentUser.uid] : 0;
+                        const earningsDisplay = earnings > 0 ? ` (Your share: $${earnings.toFixed(2)})` : '';
                         item.innerHTML = `
                                 <div class="work-details">
                                     <span class="date">${dateStr}</span>
                                     <span class="name">${escapeHtml(data.workName)}</span>
-                                    <span class="amount">Amount: $${data.amount.toFixed(2)}</span>
-                                    <span class="earnings">Earned: $${data.earnings.toFixed(2)}</span>
+                                    <span class="amount">Amount: $${totalAmount.toFixed(2)}</span>
+                                    <span class="earnings">${earningsDisplay}</span>
                                 </div>
                                 <div class="work-actions">
                                     <button class="btn-work-delete" data-id="${doc.id}" title="Delete"><i class="fas fa-trash-alt"></i></button>
@@ -2274,7 +2279,7 @@
                                 title: 'Delete Work Entry',
                                 icon: 'fa-trash-alt',
                                 iconColor: 'var(--danger)',
-                                message: 'This will permanently delete this work entry and adjust your balance accordingly.',
+                                message: 'This will permanently delete this work entry and adjust all users\' balances accordingly.',
                                 confirmText: 'Delete',
                                 danger: true,
                                 input: true,
@@ -2286,7 +2291,7 @@
                             if (confirmed) {
                                 try {
                                     await deleteWorkAndAdjustBalance(workId);
-                                    showToast('Work entry deleted and balance adjusted.', 'success');
+                                    showToast('Work entry deleted and balances adjusted.', 'success');
                                 } catch (err) {
                                     showToast('Error: ' + err.message, 'error');
                                 }
@@ -2662,7 +2667,7 @@
         };
 
         // ============================================================
-        // 16. WORK MANAGEMENT
+        // 16. WORK MANAGEMENT (Global — updates all users)
         // ============================================================
         // Set default date to today
         (function setDefaultDate() {
@@ -2687,42 +2692,51 @@
                 return;
             }
 
-            // Get current percentage
-            const percent = currentUserData?.percentage ?? 100;
-            const earnings = amount * (percent / 100);
-
             addWorkBtn.disabled = true;
             addWorkBtn.textContent = 'Adding…';
 
             try {
-                // Use transaction to update balance and add work
-                const userRef = db.collection('users').doc(currentUser.uid);
-                await db.runTransaction(async (transaction) => {
-                    const userDoc = await transaction.get(userRef);
-                    if (!userDoc.exists) {
-                        throw new Error('User document not found.');
-                    }
-                    const currentBalance = userDoc.data().balance || 0;
-                    const newBalance = currentBalance + earnings;
-                    transaction.update(userRef, { balance: newBalance });
+                // 1. Fetch all users
+                const usersSnapshot = await db.collection('users').get();
+                if (usersSnapshot.empty) {
+                    throw new Error('No users found to distribute earnings.');
+                }
 
-                    // Add work entry
-                    const workRef = db.collection('works').doc();
-                    transaction.set(workRef, {
-                        userId: currentUser.uid,
-                        date: new Date(dateVal),
-                        workName: name,
-                        amount: amount,
-                        earnings: earnings,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                // 2. Compute earnings per user
+                const earningsMap = {};
+                const batch = db.batch();
+                let totalEarnings = 0;
+                usersSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const percent = data.percentage || 100;
+                    const earning = amount * (percent / 100);
+                    earningsMap[doc.id] = earning;
+                    totalEarnings += earning;
+                    // Update each user's balance
+                    const currentBalance = data.balance || 0;
+                    const newBalance = currentBalance + earning;
+                    batch.update(doc.ref, { balance: newBalance });
                 });
+
+                // 3. Create work document with earnings map
+                const workRef = db.collection('works').doc();
+                batch.set(workRef, {
+                    amount: amount,
+                    workName: name,
+                    date: new Date(dateVal),
+                    earnings: earningsMap,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdBy: currentUser.uid,
+                    createdByEmail: currentUser.email
+                });
+
+                // 4. Commit batch
+                await batch.commit();
 
                 // Clear form
                 workName.value = '';
                 workAmount.value = '';
-                // Keep date as is
-                showToast(`Work added! Earned $${earnings.toFixed(2)}`, 'success');
+                showToast(`Work added! Distributed $${totalEarnings.toFixed(2)} to all users.`, 'success');
             } catch (err) {
                 console.error(err);
                 showToast('Failed to add work: ' + err.message, 'error');
@@ -2738,18 +2752,21 @@
             const workSnap = await workRef.get();
             if (!workSnap.exists) throw new Error('Work entry not found.');
             const workData = workSnap.data();
-            const earnings = workData.earnings || 0;
+            const earningsMap = workData.earnings || {};
 
-            // Use transaction to subtract earnings from balance and delete work
-            const userRef = db.collection('users').doc(currentUser.uid);
-            await db.runTransaction(async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists) throw new Error('User document not found.');
-                const currentBalance = userDoc.data().balance || 0;
-                const newBalance = Math.max(0, currentBalance - earnings);
-                transaction.update(userRef, { balance: newBalance });
-                transaction.delete(workRef);
-            });
+            // Use batch to subtract each user's earnings and delete work
+            const batch = db.batch();
+            for (const [userId, earning] of Object.entries(earningsMap)) {
+                if (earning === 0) continue;
+                const userRef = db.collection('users').doc(userId);
+                const userSnap = await userRef.get();
+                if (!userSnap.exists) continue;
+                const currentBalance = userSnap.data().balance || 0;
+                const newBalance = Math.max(0, currentBalance - earning);
+                batch.update(userRef, { balance: newBalance });
+            }
+            batch.delete(workRef);
+            await batch.commit();
         }
 
         // ============================================================
@@ -2774,7 +2791,7 @@
             }
         });
 
-        console.log('🚀 Rokon Workspace v3 — with Work History & Earning Percentage');
+        console.log('🚀 Rokon Workspace v4 — Global Work Distribution');
     </script>
 </body>
 </html>
