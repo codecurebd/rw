@@ -8,7 +8,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://res.cloudinary.com/zmoyykj7/image/upload/v1788927926/ybnqakprht9dilzx8ox1.png" />
 
-    <!-- Firebase SDKs (Compat) - Storage removed -->
+    <!-- Firebase SDKs (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -729,7 +729,7 @@
                                     <span class="file-size">${sizeStr}</span>
                                 </div>
                                 <div class="file-actions">
-                                    <a href="${escapeHtml(data.url)}" target="_blank">Download</a>
+                                    <a href="${escapeHtml(data.url)}" download="${escapeHtml(data.name)}" target="_blank">Download</a>
                                 </div>
                             `;
                         container.appendChild(item);
@@ -758,7 +758,7 @@
         }
 
         // ============================================================
-        //  6. FILE UPLOAD (Catbox.moe API Integration)
+        //  6. FILE UPLOAD (Base64 DataURL Storage via Firestore)
         // ============================================================
         uploadFileBtn.addEventListener('click', uploadFile);
 
@@ -770,38 +770,36 @@
             }
             if (!currentUser) return;
 
+            // File size limit check (Firestore document limit is ~1MB, keep files under 700KB for safety)
+            if (file.size > 700 * 1024) {
+                alert('⚠️ File is too large! Please upload files smaller than 700KB for Base64 storage.');
+                return;
+            }
+
             uploadFileBtn.disabled = true;
             uploadFileBtn.textContent = 'Uploading...';
 
             try {
-                const formData = new FormData();
-                formData.append('reqtype', 'fileupload');
-                formData.append('fileToUpload', file);
-
-                // Catbox.moe API request
-                const response = await fetch('https://catbox.moe/user/api.php', {
-                    method: 'POST',
-                    body: formData
+                // Convert file to Base64 Data URL using FileReader
+                const base64Data = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                    reader.readAsDataURL(file);
                 });
 
-                const downloadURL = await response.text();
-
-                if (!downloadURL || !downloadURL.startsWith('http')) {
-                    throw new Error('File upload failed via Catbox');
-                }
-
-                // Save metadata and download link to Firestore
+                // Save file metadata and base64 string directly to Firestore
                 await db.collection('files').add({
                     name: file.name,
                     size: file.size,
-                    url: downloadURL.trim(),
+                    url: base64Data,
                     uid: currentUser.uid,
                     email: currentUser.email,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
                 fileInput.value = '';
-                alert('✅ File uploaded successfully via Catbox!');
+                alert('✅ File uploaded successfully!');
 
             } catch (error) {
                 console.error('Upload error:', error);
@@ -822,7 +820,7 @@
             return div.innerHTML;
         }
 
-        console.log('🚀 Rokon Workspace (Catbox Integration) loaded.');
+        console.log('🚀 Rokon Workspace (Base64 Mode) loaded.');
     </script>
 </body>
 </html>
