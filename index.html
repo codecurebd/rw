@@ -84,8 +84,8 @@
         .file-item .file-name { font-weight:500; color:#0a2540; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
         .file-item .file-size { font-size:0.7rem; color:#7a8ea5; margin-left:4px; }
         .file-actions { display:flex; align-items:center; gap:8px; }
-        .file-actions a { color:#1a5cdb; text-decoration:none; font-weight:500; font-size:0.8rem; background:#fff; padding:4px 12px; border-radius:30px; border:1px solid #dce3ec; transition:0.2s; }
-        .file-actions a:hover { background:#0a2540; color:#fff; border-color:#0a2540; }
+        .file-actions a, .file-actions .download-btn { color:#1a5cdb; text-decoration:none; font-weight:500; font-size:0.8rem; background:#fff; padding:4px 12px; border-radius:30px; border:1px solid #dce3ec; transition:0.2s; cursor:pointer; display:inline-block; }
+        .file-actions a:hover, .file-actions .download-btn:hover { background:#0a2540; color:#fff; border-color:#0a2540; }
         .btn-single-delete { background:none; border:none; color:#99aab6; cursor:pointer; font-size:1rem; padding:2px 6px; border-radius:6px; transition:0.2s; }
         .btn-single-delete:hover { color:#d32f2f; background:#ffebee; }
 
@@ -103,6 +103,14 @@
         .btn-doc-upload { background:#0a2540; color:#fff; }
         .btn-doc-upload:hover { background:#1a3550; }
         button:disabled { opacity:0.6; cursor:not-allowed; }
+
+        /* Progress Bar */
+        .upload-progress-wrap { display:none; align-items:center; gap:12px; padding:4px 0; }
+        .upload-progress-wrap.show { display:flex; }
+        .upload-progress-wrap progress { flex:1; height:8px; border-radius:10px; overflow:hidden; }
+        .upload-progress-wrap progress::-webkit-progress-bar { background:#eef3f9; border-radius:10px; }
+        .upload-progress-wrap progress::-webkit-progress-value { background:#1a5cdb; border-radius:10px; }
+        .upload-progress-wrap .progress-text { font-size:0.8rem; color:#1a2a44; font-weight:600; min-width:40px; }
 
         .empty-state { color:#8a9eb5; text-align:center; padding:40px 20px; font-size:0.9rem; }
 
@@ -185,6 +193,12 @@
                 <div class="file-list" id="fileList"><div class="empty-state">No files shared yet.</div></div>
 
                 <div class="file-upload-container">
+                    <!-- Progress Bar (for document chunk upload) -->
+                    <div class="upload-progress-wrap" id="docProgressWrap">
+                        <progress id="docProgressBar" value="0" max="100"></progress>
+                        <span class="progress-text" id="docProgressText">0%</span>
+                    </div>
+
                     <div class="upload-row">
                         <label class="file-label">
                             <i class="fas fa-image"></i>
@@ -211,7 +225,7 @@
 
 <script>
     // ============================================================
-    // 1. FIREBASE CONFIG
+    // 1. FIREBASE & CLOUDINARY CONFIG
     // ============================================================
     const firebaseConfig = {
         apiKey: "AIzaSyD-RHTu4TNjlEdH3M7O6-1HVaniVCPMEyI",
@@ -225,37 +239,11 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // ============================================================
-    // 2. CLOUDINARY – FIXED PRESET (matches components.js)
-    // ============================================================
     const CLOUDINARY_CLOUD_NAME = "zmoyykj7";
-    const CLOUDINARY_UPLOAD_PRESET = "codecurebd";  // ✅ CORRECT preset
+    const CLOUDINARY_UPLOAD_PRESET = "codecurebd";  // ✅ from components.js
 
     // ============================================================
-    // 3. UPLOAD FUNCTION (matches admin panel's uploadImage)
-    // ============================================================
-    async function uploadImageToCloudinary(file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || 'Cloudinary upload failed');
-        }
-
-        const data = await response.json();
-        if (!data.secure_url) throw new Error('Cloudinary did not return a secure URL');
-        return data.secure_url;
-    }
-
-    // ============================================================
-    // 4. DOM REFS & STATE
+    // 2. DOM REFS
     // ============================================================
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loginScreen = document.getElementById('loginScreen');
@@ -267,13 +255,16 @@
     const loginError = document.getElementById('loginError');
     const logoutBtn = document.getElementById('logoutBtn');
     const userEmailDisplay = document.getElementById('userEmailDisplay');
+
     const chatMessages = document.getElementById('chatMessages');
     const chatInput = document.getElementById('chatInput');
     const sendChatBtn = document.getElementById('sendChatBtn');
+
     const fileList = document.getElementById('fileList');
     const fileCount = document.getElementById('fileCount');
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+
     const imageInput = document.getElementById('imageInput');
     const uploadImageBtn = document.getElementById('uploadImageBtn');
     const imageFileName = document.getElementById('imageFileName');
@@ -281,18 +272,23 @@
     const uploadDocumentBtn = document.getElementById('uploadDocumentBtn');
     const docFileName = document.getElementById('docFileName');
 
+    // Progress elements
+    const docProgressWrap = document.getElementById('docProgressWrap');
+    const docProgressBar = document.getElementById('docProgressBar');
+    const docProgressText = document.getElementById('docProgressText');
+
     let currentUser = null;
     let chatUnsubscribe = null;
     let fileUnsubscribe = null;
 
     // ============================================================
-    // 5. LOADING
+    // 3. LOADING
     // ============================================================
     function showLoading() { loadingOverlay.classList.add('active'); }
     function hideLoading() { loadingOverlay.classList.remove('active'); }
 
     // ============================================================
-    // 6. AUTH
+    // 4. AUTH
     // ============================================================
     auth.onAuthStateChanged(user => {
         if (user) {
@@ -329,7 +325,7 @@
     loginPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); });
 
     // ============================================================
-    // 7. CHAT & FILES
+    // 5. CHAT & FILES (Realtime)
     // ============================================================
     function startRealtimeListeners() {
         if (chatUnsubscribe) chatUnsubscribe();
@@ -349,40 +345,70 @@
         }, console.error);
 
         if (fileUnsubscribe) fileUnsubscribe();
-        fileUnsubscribe = db.collection('files').orderBy('timestamp','desc').onSnapshot(snapshot => {
+        fileUnsubscribe = db.collection('files').orderBy('timestamp','desc').onSnapshot(async snapshot => {
             const container = fileList;
             container.innerHTML = '';
             fileCount.textContent = snapshot.size;
             selectAllCheckbox.checked = false;
             updateDeleteSelectedButtonState();
-            if (snapshot.empty) { container.innerHTML = '<div class="empty-state">No files shared yet.</div>'; return; }
-            snapshot.forEach(doc => {
+
+            if (snapshot.empty) {
+                container.innerHTML = '<div class="empty-state">No files shared yet.</div>';
+                return;
+            }
+            for (const doc of snapshot.docs) {
                 const data = doc.data();
                 const item = document.createElement('div');
                 item.classList.add('file-item');
                 const sizeStr = data.size ? (data.size/1024).toFixed(1)+' KB' : '';
                 const icon = data.type === 'image' ? '🖼️' : '📄';
+
+                // Check if it's a chunked file (has totalChunks)
+                const isChunked = data.totalChunks && data.totalChunks > 0;
+
+                let downloadHtml = '';
+                if (isChunked) {
+                    // For chunked files, we need to trigger reassembly download
+                    downloadHtml = `<button class="download-btn" data-fileid="${doc.id}" data-name="${escapeHtml(data.name)}" onclick="downloadChunkedFile('${doc.id}', '${escapeHtml(data.name)}')">Download</button>`;
+                } else {
+                    // Regular file (Cloudinary or Base64)
+                    const url = data.url || '#';
+                    downloadHtml = `<a href="${escapeHtml(url)}" download="${escapeHtml(data.name)}" target="_blank">Download</a>`;
+                }
+
                 item.innerHTML = `
                     <div class="file-info">
                         <input type="checkbox" class="file-checkbox" data-id="${doc.id}">
                         <span class="file-icon">${icon}</span>
                         <span class="file-name" title="${escapeHtml(data.name)}">${escapeHtml(data.name)}</span>
                         <span class="file-size">${sizeStr}</span>
+                        ${isChunked ? `<span class="file-size" style="color:#1a5cdb;">(${data.totalChunks} parts)</span>` : ''}
                     </div>
                     <div class="file-actions">
-                        <a href="${escapeHtml(data.url)}" download="${escapeHtml(data.name)}" target="_blank">Download</a>
+                        ${downloadHtml}
                         <button class="btn-single-delete" data-id="${doc.id}" title="Delete file">🗑️</button>
                     </div>
                 `;
                 container.appendChild(item);
-            });
+            }
+
             container.querySelectorAll('.file-checkbox').forEach(chk => chk.addEventListener('change', updateDeleteSelectedButtonState));
             container.querySelectorAll('.btn-single-delete').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const fileId = e.currentTarget.getAttribute('data-id');
-                    if (confirm('Delete this file?')) {
-                        try { await db.collection('files').doc(fileId).delete(); }
-                        catch (err) { alert('❌ Delete failed: '+err.message); }
+                    if (confirm('Delete this file? This will also delete all its chunks.')) {
+                        try {
+                            // Delete metadata
+                            await db.collection('files').doc(fileId).delete();
+                            // Delete all chunks associated with this file
+                            const chunksSnap = await db.collection('fileChunks').where('fileId', '==', fileId).get();
+                            const batch = db.batch();
+                            chunksSnap.forEach(doc => batch.delete(doc.ref));
+                            await batch.commit();
+                            alert('✅ File and its chunks deleted.');
+                        } catch (err) {
+                            alert('❌ Delete failed: '+err.message);
+                        }
                     }
                 });
             });
@@ -394,6 +420,9 @@
         if (fileUnsubscribe) { fileUnsubscribe(); fileUnsubscribe = null; }
     }
 
+    // ============================================================
+    // 6. SELECT ALL & DELETE
+    // ============================================================
     selectAllCheckbox.addEventListener('change', (e) => {
         document.querySelectorAll('.file-checkbox').forEach(chk => chk.checked = e.target.checked);
         updateDeleteSelectedButtonState();
@@ -417,14 +446,31 @@
             deleteSelectedBtn.textContent = 'Deleting...';
             try {
                 const batch = db.batch();
-                checkboxes.forEach(chk => batch.delete(db.collection('files').doc(chk.getAttribute('data-id'))));
+                const fileIds = [];
+                checkboxes.forEach(chk => {
+                    const id = chk.getAttribute('data-id');
+                    fileIds.push(id);
+                    batch.delete(db.collection('files').doc(id));
+                });
                 await batch.commit();
+
+                // Delete associated chunks for each file
+                for (const fileId of fileIds) {
+                    const chunksSnap = await db.collection('fileChunks').where('fileId', '==', fileId).get();
+                    const chunkBatch = db.batch();
+                    chunksSnap.forEach(doc => chunkBatch.delete(doc.ref));
+                    await chunkBatch.commit();
+                }
+
                 alert('✅ Deleted successfully!');
             } catch (err) { alert('❌ Error: '+err.message); }
             finally { deleteSelectedBtn.disabled = false; selectAllCheckbox.checked = false; }
         }
     });
 
+    // ============================================================
+    // 7. CHAT SEND
+    // ============================================================
     sendChatBtn.addEventListener('click', sendMessage);
     chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
@@ -438,13 +484,27 @@
     }
 
     // ============================================================
-    // 8. UPLOAD HANDLERS
+    // 8. IMAGE UPLOAD (Cloudinary)
     // ============================================================
+    async function uploadImageToCloudinary(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'Cloudinary upload failed');
+        }
+        const data = await response.json();
+        if (!data.secure_url) throw new Error('Cloudinary did not return a secure URL');
+        return data.secure_url;
+    }
+
     imageInput.addEventListener('change', () => {
         imageFileName.textContent = imageInput.files[0] ? imageInput.files[0].name : '';
-    });
-    documentInput.addEventListener('change', () => {
-        docFileName.textContent = documentInput.files[0] ? documentInput.files[0].name : '';
     });
 
     uploadImageBtn.addEventListener('click', async () => {
@@ -470,37 +530,201 @@
         }
     });
 
+    // ============================================================
+    // 9. DOCUMENT UPLOAD (CHUNKING SYSTEM)
+    // ============================================================
+    const CHUNK_SIZE = 600 * 1024; // 600 KB per chunk (safe under 1MiB Firestore limit)
+
+    function generateFileId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    }
+
+    function updateProgress(percent) {
+        docProgressBar.value = percent;
+        docProgressText.textContent = percent + '%';
+        if (percent >= 100) {
+            setTimeout(() => {
+                docProgressWrap.classList.remove('show');
+                docProgressBar.value = 0;
+                docProgressText.textContent = '0%';
+            }, 1500);
+        } else {
+            docProgressWrap.classList.add('show');
+        }
+    }
+
+    documentInput.addEventListener('change', () => {
+        docFileName.textContent = documentInput.files[0] ? documentInput.files[0].name : '';
+    });
+
     uploadDocumentBtn.addEventListener('click', async () => {
         const file = documentInput.files[0];
         if (!file) { alert('Please select a document.'); return; }
         if (!currentUser) return;
-        if (file.size > 700 * 1024) { alert('⚠️ Document must be under 700KB.'); return; }
+
         uploadDocumentBtn.disabled = true;
         uploadDocumentBtn.textContent = 'Uploading…';
+
+        // If file is small (<= 600KB), upload as Base64 normally (faster for small files)
+        if (file.size <= CHUNK_SIZE) {
+            try {
+                const base64Data = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                await db.collection('files').add({
+                    name: file.name, size: file.size, url: base64Data,
+                    type: 'document', uid: currentUser.uid, email: currentUser.email,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    totalChunks: 1 // Mark as single chunk (for compatibility)
+                });
+                documentInput.value = ''; docFileName.textContent = '';
+                alert('✅ Document uploaded successfully!');
+                uploadDocumentBtn.disabled = false;
+                uploadDocumentBtn.textContent = 'Upload Doc';
+                return;
+            } catch (err) {
+                alert('❌ Upload failed: ' + err.message);
+                uploadDocumentBtn.disabled = false;
+                uploadDocumentBtn.textContent = 'Upload Doc';
+                return;
+            }
+        }
+
+        // ---- LARGE FILE: CHUNKING ----
         try {
-            const base64Data = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-            await db.collection('files').add({
-                name: file.name, size: file.size, url: base64Data,
-                type: 'document', uid: currentUser.uid, email: currentUser.email,
+            const fileId = generateFileId();
+            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+            const fileBuffer = await file.arrayBuffer();
+
+            // 1. Create Metadata document
+            await db.collection('files').doc(fileId).set({
+                id: fileId,
+                name: file.name,
+                size: file.size,
+                type: 'document',
+                totalChunks: totalChunks,
+                status: 'uploading',
+                uid: currentUser.uid,
+                email: currentUser.email,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
+
+            // 2. Upload chunks sequentially
+            for (let i = 0; i < totalChunks; i++) {
+                const start = i * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const chunkData = new Uint8Array(fileBuffer.slice(start, end));
+
+                await db.collection('fileChunks').add({
+                    fileId: fileId,
+                    chunkIndex: i,
+                    totalChunks: totalChunks,
+                    data: chunkData, // Firestore bytes (Uint8Array)
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Update progress
+                const percent = Math.round(((i + 1) / totalChunks) * 100);
+                updateProgress(percent);
+            }
+
+            // 3. Mark as completed
+            await db.collection('files').doc(fileId).update({
+                status: 'completed',
+                completedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
             documentInput.value = ''; docFileName.textContent = '';
-            alert('✅ Document uploaded successfully!');
+            alert(`✅ Large file uploaded successfully! (${totalChunks} chunks)`);
+            updateProgress(100);
+
         } catch (err) {
+            console.error('Chunk upload error:', err);
             alert('❌ Upload failed: ' + err.message);
         } finally {
             uploadDocumentBtn.disabled = false;
-            uploadDocumentBtn.textContent = 'Upload';
+            uploadDocumentBtn.textContent = 'Upload Doc';
         }
     });
 
     // ============================================================
-    // 9. UTILITY
+    // 10. DOWNLOAD CHUNKED FILE (Reassembly)
+    // ============================================================
+    window.downloadChunkedFile = async function(fileId, fileName) {
+        try {
+            // 1. Get metadata
+            const metaSnap = await db.collection('files').doc(fileId).get();
+            if (!metaSnap.exists()) {
+                alert('File metadata not found.');
+                return;
+            }
+            const meta = metaSnap.data();
+            const totalChunks = meta.totalChunks || 0;
+            if (totalChunks === 0) {
+                alert('Invalid file: no chunks found.');
+                return;
+            }
+
+            // 2. Fetch all chunks
+            const chunksSnap = await db.collection('fileChunks')
+                .where('fileId', '==', fileId)
+                .orderBy('chunkIndex', 'asc')
+                .get();
+
+            if (chunksSnap.empty) {
+                alert('No chunks found for this file.');
+                return;
+            }
+
+            // 3. Reassemble
+            const chunks = [];
+            let totalSize = 0;
+            chunksSnap.forEach(doc => {
+                const data = doc.data();
+                // Firestore returns Uint8Array for bytes field
+                const chunk = data.data;
+                if (chunk) {
+                    chunks.push(chunk);
+                    totalSize += chunk.length;
+                }
+            });
+
+            if (chunks.length !== totalChunks) {
+                alert(`Warning: Expected ${totalChunks} chunks, found ${chunks.length}. File may be corrupted.`);
+            }
+
+            // 4. Concatenate all chunks
+            const fullArray = new Uint8Array(totalSize);
+            let offset = 0;
+            for (const chunk of chunks) {
+                fullArray.set(chunk, offset);
+                offset += chunk.length;
+            }
+
+            // 5. Create blob and download
+            const blob = new Blob([fullArray], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName || 'downloaded_file';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+            alert('✅ File downloaded successfully!');
+
+        } catch (err) {
+            console.error('Download error:', err);
+            alert('❌ Download failed: ' + err.message);
+        }
+    };
+
+    // ============================================================
+    // 11. UTILITY
     // ============================================================
     function escapeHtml(text) {
         if (!text) return '';
@@ -509,8 +733,7 @@
         return div.innerHTML;
     }
 
-    console.log('🚀 Rokon Workspace – Image upload preset set to "codecurebd" (matches admin panel).');
-    console.log('📸 Cloudinary cloud:', CLOUDINARY_CLOUD_NAME);
+    console.log('🚀 Rokon Workspace – Document chunking system enabled (600KB per chunk).');
 </script>
 </body>
 </html>
