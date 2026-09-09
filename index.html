@@ -72,7 +72,6 @@
             margin: 0;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            /* Performance: promote to own layer */
             transform: translateZ(0);
             will-change: transform;
         }
@@ -92,7 +91,6 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            /* Performance: isolate */
             contain: layout style paint;
             transform: translateZ(0);
             will-change: transform;
@@ -241,7 +239,6 @@
             display: none;
             flex-direction: column;
             height: 100%;
-            /* Performance */
             contain: layout style;
         }
         #dashboard.active {
@@ -332,7 +329,6 @@
             padding: 16px;
             gap: 16px;
             background: var(--bg-primary);
-            /* Performance */
             contain: layout style;
         }
 
@@ -384,7 +380,6 @@
             gap: 8px;
             background: rgba(248, 250, 252, 0.3);
             min-height: 120px;
-            /* Performance */
             contain: layout style;
             will-change: scroll-position;
         }
@@ -408,7 +403,6 @@
             word-wrap: break-word;
             animation: msgIn 0.2s ease;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-            /* Performance */
             contain: layout style;
         }
         @keyframes msgIn {
@@ -1966,17 +1960,33 @@
         // 10. CHAT SEND
         // ============================================================
         sendChatBtn.addEventListener('click', sendMessage);
-        chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+        // Only one Enter listener — on the input itself. The document-level
+        // handler below no longer duplicates this.
+        chatInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
 
         function sendMessage() {
             const text = chatInput.value.trim();
             if (!text || !currentUser) return;
+            // Disable the button briefly to prevent double-clicks
+            sendChatBtn.disabled = true;
             db.collection('messages').add({
                 text,
                 uid: currentUser.uid,
                 email: currentUser.email,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => chatInput.value = '').catch(console.error);
+            }).then(() => {
+                chatInput.value = '';
+                sendChatBtn.disabled = false;
+            }).catch((err) => {
+                console.error(err);
+                sendChatBtn.disabled = false;
+                showToast('Failed to send message', 'error');
+            });
         }
 
         // ============================================================
@@ -2244,15 +2254,15 @@
         // 15. KEYBOARD SHORTCUTS
         // ============================================================
         document.addEventListener('keydown', (e) => {
+            // Escape closes the modal (if open)
             if (e.key === 'Escape') {
                 if (modal.classList.contains('open')) {
                     if (modalResolve) modalResolve(false);
                     closeModal();
                 }
             }
-            if (e.key === 'Enter' && document.activeElement === chatInput) {
-                sendMessage();
-            }
+            // NOTE: Enter on chatInput is handled directly on the input
+            // element itself (see above) to avoid double-firing.
         });
 
         console.log('🚀 Rokon Workspace v2 — Custom UI with modals & chunk upload');
