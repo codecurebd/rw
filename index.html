@@ -8,15 +8,10 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://res.cloudinary.com/zmoyykj7/image/upload/v1788927926/ybnqakprht9dilzx8ox1.png" />
 
-    <!-- Firebase SDKs (Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js">
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js">
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js">
-    </script>
+    <!-- Firebase SDKs (Compat) - Storage removed -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <style>
         /* ===== GLOBAL RESET ===== */
@@ -589,7 +584,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const storage = firebase.storage();
+        // Firebase Storage removed - using File.io API instead
 
         // ============================================================
         //  2. DOM REFS
@@ -744,10 +739,8 @@
         }
 
         function detachListeners() {
-            if (chatUnsubscribe) { chatUnsubscribe();
-                chatUnsubscribe = null; }
-            if (fileUnsubscribe) { fileUnsubscribe();
-                fileUnsubscribe = null; }
+            if (chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+            if (fileUnsubscribe) { fileUnsubscribe(); fileUnsubscribe = null; }
         }
 
         sendChatBtn.addEventListener('click', sendMessage);
@@ -766,7 +759,7 @@
         }
 
         // ============================================================
-        //  6. FILE UPLOAD (Firebase Storage - 100% Working)
+        //  6. FILE UPLOAD (File.io API Integration)
         // ============================================================
         uploadFileBtn.addEventListener('click', uploadFile);
 
@@ -782,28 +775,34 @@
             uploadFileBtn.textContent = 'Uploading...';
 
             try {
-                // 1. Create a unique file path in Firebase Storage
-                const filePath = `uploads/${currentUser.uid}/${Date.now()}_${file.name}`;
-                const storageRef = storage.ref(filePath);
+                // 1. Prepare FormData for File.io
+                const formData = new FormData();
+                formData.append('file', file);
 
-                // 2. Upload the file
-                const snapshot = await storageRef.put(file);
-                
-                // 3. Get the download URL
-                const downloadURL = await snapshot.ref.getDownloadURL();
+                // 2. Upload to File.io API via POST request
+                const response = await fetch('https://file.io', {
+                    method: 'POST',
+                    body: formData
+                });
 
-                // 4. Save file metadata to Firestore
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error('File upload failed via File.io');
+                }
+
+                // 3. Save metadata and download link to Firestore
                 await db.collection('files').add({
                     name: file.name,
                     size: file.size,
-                    url: downloadURL,
+                    url: result.link,
                     uid: currentUser.uid,
                     email: currentUser.email,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
                 fileInput.value = '';
-                alert('✅ File uploaded successfully to Firebase Storage!');
+                alert('✅ File uploaded successfully via File.io!');
 
             } catch (error) {
                 console.error('Upload error:', error);
@@ -824,7 +823,7 @@
             return div.innerHTML;
         }
 
-        console.log('🚀 Rokon Workspace (Firebase Storage) loaded.');
+        console.log('🚀 Rokon Workspace (File.io Integration) loaded.');
     </script>
 </body>
 </html>
